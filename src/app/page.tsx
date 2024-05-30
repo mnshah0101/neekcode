@@ -1,113 +1,338 @@
-import Image from "next/image";
+"use client";
+import { set } from "mongoose";
+import React, { useState, ChangeEvent, FormEvent, useEffect } from "react";
+import { AiFillLike } from "react-icons/ai";
+import { FaEye } from "react-icons/fa";
 
-export default function Home() {
+const shortenText = (text: string, maxLength: number) => {
+  if (text.length > maxLength) {
+    return text.substring(0, maxLength) + "...";
+  }
+  return text;
+};
+
+interface Answer {
+  username: string;
+  email: string;
+  file_url: string;
+  likes: number;
+  id: string;
+}
+const fakeAnswers: Answer[] = [
+  // ... (existing fake answers)
+];
+
+const question_id = "1";
+
+function App() {
+  const [answers, setAnswers] = useState<Answer[]>(fakeAnswers);
+  const [name, setName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [file, setFile] = useState<File | null>(null);
+  const [isFormVisible, setIsFormVisible] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const [hasAnswered, setHasAnswered] = useState<boolean>(false);
+
+  const likeSolution = async (solution_id: string) => {
+    try {
+      let likedSolutions = localStorage.getItem("liked_solutions");
+      if (likedSolutions) {
+        likedSolutions = JSON.parse(likedSolutions);
+        // @ts-ignore
+        if (likedSolutions.includes(solution_id)) {
+          console.log("disliking solution");
+          const formData = new FormData();
+          formData.append("solution_id", solution_id);
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_SERVER}/dislike`,
+            {
+              method: "POST",
+              body: formData,
+            }
+          );
+          if (response.ok) {
+            getSolutions();
+            // @ts-ignore
+            likedSolutions = likedSolutions.filter(
+              (id: string) => id !== solution_id
+            );
+            localStorage.setItem(
+              "liked_solutions",
+              JSON.stringify(likedSolutions)
+            );
+          } else {
+            console.error("Failed to dislike solution");
+          }
+          return;
+        }
+      }
+      console.log("liking solution");
+      console.log(solution_id);
+      const formData = new FormData();
+      formData.append("solution_id", solution_id);
+      const response = await fetch(`http://localhost:8080/like`, {
+        method: "POST",
+        body: formData,
+      });
+      if (response.ok) {
+        getSolutions();
+
+        let likedSolutions = localStorage.getItem("liked_solutions");
+
+        if (likedSolutions) {
+          likedSolutions = JSON.parse(likedSolutions);
+          // @ts-ignore
+          likedSolutions.push(solution_id);
+          localStorage.setItem(
+            "liked_solutions",
+            JSON.stringify(likedSolutions)
+          );
+        } else {
+          // @ts-ignore
+          likedSolutions = [solution_id];
+          localStorage.setItem(
+            "liked_solutions",
+            JSON.stringify([likedSolutions])
+          );
+        }
+      } else {
+        console.error("Failed to like solution");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  useEffect(() => {
+    getSolutions();
+    const my_question_id = localStorage.getItem("question_id");
+    if (my_question_id) {
+      if (my_question_id === question_id) {
+        setHasAnswered(true);
+      }
+    }
+  }, []);
+
+  const getSolutions = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER}/solutions?question_id=${question_id}`,
+        {
+          method: "GET",
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+
+        setAnswers(data.solutions);
+      } else {
+        console.error("Failed to fetch solutions");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (hasAnswered) {
+      setError("You have already submitted a solution");
+      return;
+    }
+
+    if (name && email && file) {
+      try {
+        let formData = new FormData();
+
+        formData.append("file", file);
+        formData.append("username", name);
+        formData.append("email", email);
+        formData.append("question_id", question_id);
+        formData.append("date", new Date().toISOString());
+        formData.append("likes", "0");
+
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_SERVER}/solution`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        if (response.ok) {
+          setName("");
+          setEmail("");
+          setFile(null);
+          setIsFormVisible(false);
+          localStorage.setItem("question_id", question_id);
+          setHasAnswered(true);
+        } else {
+          console.error("Failed to submit solution");
+        }
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    } else {
+      setError("Missing required fields");
+    }
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFile(e.target.files[0]);
+    }
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
+      <div className="fill-contain" style={{ height: "10rem" }}></div>
+
+      <h1 className="text-3xl font-bold mb-4 text-center">neekcode</h1>
+      <p className="mb-4 text-center">
+        how many jerks does it take to turn on a light bulb?
+      </p>
+      <button
+        onClick={() => setIsFormVisible(!isFormVisible)}
+        className="bg-black text-white py-2 px-4 rounded mb-6"
+      >
+        upload solution
+      </button>
+
+      <div className={`drop-down-form ${isFormVisible ? "open" : ""}`}>
+        <div className="p-8 border rounded w-96 mb-8">
+          <form onSubmit={handleSubmit}>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Name</label>
+              <input
+                type="text"
+                className="border rounded w-full p-2"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                placeholder="Fat Nuts"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Email</label>
+              <input
+                type="email"
+                className="border rounded w-full p-2"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="fatnuts@gmail.com"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">File</label>
+
+              {file ? (
+                <div className="flex items-center justify-center w-full">
+                  <label className="flex flex-col items-center justify-center w-full h-30 border-2 border-gray-300 border-dashed rounded-lg">
+                    <p className="mb-2 text-sm text-gray-500 flex justify-center flex-col items-center">
+                      File upload completed:{" "}
+                      <span className="font-semibold">{file.name}</span>
+                    </p>
+                  </label>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center w-full">
+                  <label
+                    htmlFor="dropzone-file"
+                    className="flex flex-col items-center justify-center w-full h-30 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer"
+                  >
+                    <div className="flex flex-col items-center justify-center">
+                      <svg
+                        className="w-8 h-8 mb-2 mt-4 text-gray-500"
+                        aria-hidden="true"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 20 16"
+                      >
+                        <path
+                          stroke="currentColor"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5 a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
+                        />
+                      </svg>
+                      <p className="mb-2 text-sm text-gray-500">
+                        <span className="font-semibold">Click to upload</span>{" "}
+                        or drag and drop
+                      </p>
+                    </div>
+                    <input
+                      id="dropzone-file"
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileChange}
+                      accept=".pdf, image/*"
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-between">
+              <button
+                type="submit"
+                className="bg-gray border-gray-300 border border-dashed text-gray-500 p-2 rounded w-full"
+              >
+                Submit
+              </button>
+            </div>
+          </form>
+
+          {error && <p className="text-red-500 mt-4">{error}</p>}
         </div>
       </div>
 
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
+      <div
+        className="top_answers my-10 max-w-4xl overflow-y-auto"
+        style={{ maxHeight: "400px" }}
+        id="top-answers"
+      >
+        <h2 className="text-2xl font-bold mb-4">top answers</h2>
+        <table className="min-w-full border">
+          <thead className="sticky top-0 bg-gray-200">
+            <tr>
+              <th className="border px-4 py-2">username</th>
+              <th className="border px-4 py-2">view</th>
+              <th className="border px-4 py-2">likes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {answers.map((answer, index) => (
+              <tr key={index}>
+                <td style={{ width: "10rem" }} className="border px-4 py-2">
+                  {shortenText(answer.username, 30).toLowerCase()}
+                </td>
+                <td style={{ width: "2rem" }} className="border px-4 py-2">
+                  <a className="flex justify-center" href={answer.file_url}>
+                    <FaEye />
+                  </a>
+                </td>
+                <td style={{ width: "3rem" }} className="border px-4 py-2">
+                  <div className="flex items-center">
+                    <span className="mr-2">{answer.likes}</span>
+                    <button
+                      onClick={() => likeSolution(answer.id)}
+                      className="p-1 rounded"
+                    >
+                      <AiFillLike />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    </div>
   );
 }
+
+export default App;
