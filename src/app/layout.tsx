@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "@next/font/local";
 import "./globals.css";
+import Head from "next/head";
 
 const Electrica = localFont({
   src: [
@@ -29,7 +30,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <link rel="icon" href="/favicon.ico" sizes="any" />
+      <Head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+      </Head>
 
       <body className={Electrica.className}>{children}</body>
     </html>
