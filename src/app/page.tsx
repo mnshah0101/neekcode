@@ -70,7 +70,7 @@ function App() {
       console.log(solution_id);
       const formData = new FormData();
       formData.append("solution_id", solution_id);
-      const response = await fetch(`http://localhost:8080/like`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SERVER}/like`, {
         method: "POST",
         body: formData,
       });
