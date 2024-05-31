@@ -70,7 +70,7 @@ function App() {
       console.log(solution_id);
       const formData = new FormData();
       formData.append("solution_id", solution_id);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_SERVER}/like`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SERVER}`, {
         method: "POST",
         body: formData,
       });
@@ -123,6 +123,8 @@ function App() {
       );
       if (response.ok) {
         const data = await response.json();
+
+        console.log(data);
 
         setAnswers(data.solutions);
       } else {
@@ -305,29 +307,30 @@ function App() {
             </tr>
           </thead>
           <tbody>
-            {answers.map((answer, index) => (
-              <tr key={index}>
-                <td style={{ width: "10rem" }} className="border px-4 py-2">
-                  {shortenText(answer.username, 30).toLowerCase()}
-                </td>
-                <td style={{ width: "2rem" }} className="border px-4 py-2">
-                  <a className="flex justify-center" href={answer.file_url}>
-                    <FaEye />
-                  </a>
-                </td>
-                <td style={{ width: "3rem" }} className="border px-4 py-2">
-                  <div className="flex items-center">
-                    <span className="mr-2">{answer.likes}</span>
-                    <button
-                      onClick={() => likeSolution(answer.id)}
-                      className="p-1 rounded"
-                    >
-                      <AiFillLike />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {answers &&
+              answers.map((answer, index) => (
+                <tr key={index}>
+                  <td style={{ width: "10rem" }} className="border px-4 py-2">
+                    {shortenText(answer.username, 30).toLowerCase()}
+                  </td>
+                  <td style={{ width: "2rem" }} className="border px-4 py-2">
+                    <a className="flex justify-center" href={answer.file_url}>
+                      <FaEye />
+                    </a>
+                  </td>
+                  <td style={{ width: "3rem" }} className="border px-4 py-2">
+                    <div className="flex items-center">
+                      <span className="mr-2">{answer.likes}</span>
+                      <button
+                        onClick={() => likeSolution(answer.id)}
+                        className="p-1 rounded"
+                      >
+                        <AiFillLike />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
           </tbody>
         </table>
       </div>
