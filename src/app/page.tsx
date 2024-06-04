@@ -30,6 +30,7 @@ function App() {
   const [isFormVisible, setIsFormVisible] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [hasAnswered, setHasAnswered] = useState<boolean>(false);
+  const [disabled, setDisabled] = useState<boolean>(false);
 
   const likeSolution = async (solution_id: string) => {
     try {
@@ -134,11 +135,16 @@ function App() {
   };
 
   const handleSubmit = async (e: FormEvent) => {
+    setDisabled(true);
+
     e.preventDefault();
+
     setError("");
 
     if (hasAnswered) {
       setError("You have already submitted a solution");
+      setDisabled(true);
+
       return;
     }
 
@@ -162,6 +168,8 @@ function App() {
         );
 
         if (response.ok) {
+          setDisabled(true);
+
           setName("");
           setEmail("");
           setFile(null);
@@ -169,12 +177,18 @@ function App() {
           localStorage.setItem("question_id", question_id);
           setHasAnswered(true);
         } else {
+          setDisabled(false);
+
           console.error("Failed to submit solution");
         }
       } catch (error) {
+        setDisabled(false);
+
         console.error("Error:", error);
       }
     } else {
+      setDisabled(false);
+
       setError("Missing required fields");
     }
   };
@@ -278,6 +292,7 @@ function App() {
             </div>
             <div className="flex justify-between">
               <button
+                disabled={disabled}
                 type="submit"
                 className="bg-gray border-gray-300 border border-dashed text-gray-500 p-2 rounded w-full"
               >
