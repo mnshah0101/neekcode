@@ -18,9 +18,7 @@ interface Answer {
   likes: number;
   id: string;
 }
-const fakeAnswers: Answer[] = [
-  // ... (existing fake answers)
-];
+const fakeAnswers: Answer[] = [];
 
 const question_id = "1";
 
@@ -61,7 +59,7 @@ function App() {
               JSON.stringify(likedSolutions)
             );
           } else {
-            console.error("Failed to dislike solution");
+            console.error("Dislike failed");
           }
           return;
         }
@@ -96,7 +94,7 @@ function App() {
           );
         }
       } else {
-        console.error("Failed to like solution");
+        console.error("Like failed");
       }
     } catch (error) {
       console.error("Error:", error);
